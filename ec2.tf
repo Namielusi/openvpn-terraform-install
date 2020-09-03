@@ -25,8 +25,8 @@ data "aws_ami" "amazon_linux_2" {
 }
 
 resource "aws_key_pair" "openvpn" {
-  key_name   = var.ssh_private_key_file
-  public_key = file("${path.module}/${var.ssh_public_key_file}")
+  key_name   = lower("${var.tag_name}-key")
+  public_key = var.ssh_public_key
 }
 
 resource "aws_instance" "openvpn" {
@@ -59,7 +59,7 @@ resource "null_resource" "openvpn_bootstrap" {
     host        = aws_instance.openvpn.public_ip
     user        = var.ec2_username
     port        = "22"
-    private_key = file("${path.module}/${var.ssh_private_key_file}")
+    private_key = var.ssh_private_key
     agent       = false
   }
 
@@ -92,7 +92,7 @@ resource "null_resource" "openvpn_update_users_script" {
     host        = aws_instance.openvpn.public_ip
     user        = var.ec2_username
     port        = "22"
-    private_key = file("${path.module}/${var.ssh_private_key_file}")
+    private_key = var.ssh_private_key
     agent       = false
   }
 
@@ -109,22 +109,22 @@ resource "null_resource" "openvpn_update_users_script" {
   }
 }
 
-resource "null_resource" "openvpn_download_configurations" {
-  depends_on = [null_resource.openvpn_update_users_script]
+# resource "null_resource" "openvpn_download_configurations" {
+#   depends_on = [null_resource.openvpn_update_users_script]
 
-  triggers = {
-    ovpn_users = join(" ", var.ovpn_users)
-  }
+#   triggers = {
+#     ovpn_users = join(" ", var.ovpn_users)
+#   }
 
-  provisioner "local-exec" {
-    command = <<EOT
-    mkdir -p ${var.ovpn_config_directory};
-    scp -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
-        -i ${var.ssh_private_key_file} ${var.ec2_username}@${aws_instance.openvpn.public_ip}:/home/${var.ec2_username}/*.ovpn ${var.ovpn_config_directory}/
+#   provisioner "local-exec" {
+#     command = <<EOT
+#     mkdir -p ${var.ovpn_config_directory};
+#     scp -o StrictHostKeyChecking=no \
+#         -o UserKnownHostsFile=/dev/null \
+#         -i ${var.ssh_private_key_file} ${var.ec2_username}@${aws_instance.openvpn.public_ip}:/home/${var.ec2_username}/*.ovpn ${var.ovpn_config_directory}/
     
-EOT
+# EOT
 
-  }
-}
+#   }
+# }
 
